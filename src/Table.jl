@@ -237,3 +237,9 @@ end
 function Base.hvcat(rows::Tuple{Vararg{Int}}, tables::Table{<:NamedTuple{names}}...) where {names}
     return Table(map((cols...,) -> hvcat(rows, cols...), map(columns, tables)...))
 end
+
+function Base.resize!(t::Table, len::Int)
+	for c in columns(t)
+		resize!(c, len)
+	end
+end

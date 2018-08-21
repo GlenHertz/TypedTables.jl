@@ -244,3 +244,9 @@ end
 @pure function _hcat_ndims(i::Int, j::Int)
     max(i, j, 2)
 end
+
+function Base.resize!(t::FlexTable, len::Int)
+    for c in columns(t)
+        resize!(c, len)
+    end
+end
