@@ -1,4 +1,20 @@
-function Base.show(io::IO, t::T, allcols::Bool=true, rowlabel=:Row, displaysummary::Bool=true) where {T<:Union{Table,FlexTable}}
+function Base.show(io::IO, ::MIME"text/plain", t::T) where {T <: Union{Table,FlexTable}}
+    showtable(io, t)
+end
+function Base.show(io::IO, t::T) where {T <: Union{Table,FlexTable}}
+    showtable(io, t)
+end
+
+showtable(t; kwargs...) = showtable(stdout, t; kwargs...)
+
+function showtable(io::IO, t::T;
+                   allcols::Bool=false,
+                   rowlabel::Symbol=:Row,
+                   compact::Bool=true,
+                   displaysummary::Bool=true) where {T<:Union{Table,FlexTable}}
+    if compact
+        io = IOContext(io, :compact=>compact)
+    end
     nrows = size(t)[1]
     disp_rows, disp_cols = displaysize(io)
     disp_max_rows = disp_rows - 5
@@ -11,7 +27,7 @@ function Base.show(io::IO, t::T, allcols::Bool=true, rowlabel=:Row, displaysumma
         rowindices1 = 1:bound
         rowindices2 = max(bound + 1, nrows - half_max_rows + 1):nrows
     end
-    maxwidths = getmaxwidths(t, rowindices1, rowindices2, rowlabel)
+    maxwidths = getmaxwidths(io, t, rowindices1, rowindices2, rowlabel)
     showrows(io,
              t,
              rowindices1,
@@ -51,24 +67,20 @@ function showrows(io::IO,
         println(io, summary(t))
     end
 
-    if !allcols && length(chunkbounds) > 2
-        @info "Omitted printing of $(chunkbounds[end] - chunkbounds[2]) columns"
-    end
-
     for chunkindex in 1:nchunks
         leftcol = chunkbounds[chunkindex] + 1
         rightcol = chunkbounds[chunkindex + 1]
 
         # Print column names
         print(io, "│ ", rowlabel)
-        padding = labelmaxwidth - textwidth(string(rowlabel))
+        padding = labelmaxwidth - ourstrwidth(rowlabel)
         print(io, " " ^ padding)
         print(io, " │")
 
         for c in leftcol:rightcol
             s = columnnames(t)[c]
             print(io, " ", s)
-            padding = maxwidths[c] - textwidth(string(s))
+            padding = maxwidths[c] - ourstrwidth(s)
             print(io, " " ^ padding)
             if c == rightcol
                 print(io, " │\n")
@@ -119,6 +131,15 @@ function showrows(io::IO,
         end
     end
 
+    if !allcols && length(chunkbounds) > 2
+        C = chunkbounds[end] - chunkbounds[2]
+        s = C == 1 ? "" : "s"
+        print(io, "\nNote: Omitted printing $C column$s: ")
+        join(io, columnnames(t)[end-C+1:end], ", ")
+        println(io)
+    end
+
+
     return
 end
 
@@ -142,8 +163,8 @@ function showrowindices(io::IO,
         for c in leftcol:rightcol
             strlen = 0
             s = rows_t[r][c]
-            str = string(s)
-            strlen = textwidth(str)
+            str = ourstr(s)
+            strlen = ourstrwidth(str)
             if ismissing(s)
                 printstyled(io, s, color=:light_black)
             elseif s === nothing
@@ -179,24 +200,24 @@ function summary(t::FlexTable)
     string(nrow, "x", ncol, " FlexTable")
 end
 
-function getmaxwidths(t::T, rowindices1::AbstractVector{Int}, rowindices2::AbstractVector{Int}, rowlabel::Symbol)::AbstractVector{Int} where {T <: Union{Table, FlexTable}}
+function getmaxwidths(io::IO, t::T, rowindices1::AbstractVector{Int}, rowindices2::AbstractVector{Int}, rowlabel::Symbol)::AbstractVector{Int} where {T <: Union{Table, FlexTable}}
     ncol = length(columnnames(t))
     maxwidths = fill(0, ncol + 1)
 
     # columns from table:
     for (c, name) in enumerate(columnnames(t))
         # 1) consider length of column name
-        maxwidth = textwidth(string(names))
+        maxwidth = ourstrwidth(name)
         # 2) consider length of longest entry in column
         col = getproperty(t, name)
         for indices in (rowindices1, rowindices2), idx in indices
-            maxwidth = max(maxwidth, textwidth(string(col[idx])))
+            maxwidth = max(maxwidth, ourstrwidth(col[idx]))
         end
         maxwidths[c] = maxwidth
     end
 
     # Calc row index width (stored as extra entry in maxwidths)
-    labelwidth = textwidth(string(rowlabel))
+    labelwidth = ourstrwidth(rowlabel)
     rowmaxwidth1 = isempty(rowindices1) ? 0 : ndigits(last(rowindices1))
     rowmaxwidth2 = isempty(rowindices2) ? 0 : ndigits(last(rowindices2))
     maxwidths[end] = max(labelwidth, rowmaxwidth1, rowmaxwidth2)
@@ -254,4 +275,21 @@ function getchunkbounds(maxwidths::Vector{Int},
     end
     return chunkbounds
 end
+
+let
+    local io = IOBuffer(Vector{UInt8}(undef, 300), read=true, write=true)
+    global ourstr
+    function ourstr(x::Any)
+        truncate(io, 0)
+        ourshowcompact(io, x)
+        String(take!(io))
+    end
+end
+
+ourstrwidth(x::Any) = textwidth(ourstr(x))
+
+ourshowcompact(io::IO, x::Any) = show(IOContext(io, :compact=>true), x)
+ourshowcompact(io::IO, x::AbstractString) = escape_string(io, x, "")
+ourshowcompact(io::IO, x::Symbol) = ourshowcompact(io, string(x))
+ourshowcompact(io::IO, x::Nothing) = ""
 
