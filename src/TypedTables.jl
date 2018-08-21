@@ -34,5 +34,6 @@ _ndims(::Type{<:Tuple{Vararg{AbstractArray{<:Any, n}}}}) where {n} = n
 include("Table.jl")
 include("FlexTable.jl")
 include("columnops.jl")
+include("show.jl")
 
 end # module
