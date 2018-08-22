@@ -45,10 +45,10 @@ function showrows(io::IO,
                   rowindices1::AbstractVector{Int},
                   rowindices2::AbstractVector{Int},
                   maxwidths::AbstractVector{Int},
-                  splitchunks::Bool = false,
+                  splittable::Bool = true,
                   allcols::Bool = true,
                   rowlabel::Symbol = :Row,
-		  displaysummary::Bool = true) where {T <: Union{Table, FlexTable}}
+                  displaysummary::Bool = true) where {T <: Union{Table, FlexTable}}
 
     if isempty(rowindices1)
         if displaysummary
@@ -59,7 +59,7 @@ function showrows(io::IO,
 
     ncols = length(columnnames(t))
     labelmaxwidth = maxwidths[end]
-    chunkbounds = getchunkbounds(maxwidths, splitchunks, displaysize(io)[2])
+    chunkbounds = getchunkbounds(maxwidths, splittable, displaysize(io)[2])
     nchunks = allcols ? length(chunkbounds) - 1 : min(length(chunkbounds) - 1, 1)
 
     # Print summary:
@@ -148,7 +148,7 @@ function showrowindices(io::IO,
                         rowindices::AbstractVector{Int},
                         maxwidths::Vector{Int},
                         leftcol::Int,
-			rightcol::Int) where {T <: Union{Table, FlexTable}}
+                        rightcol::Int) where {T <: Union{Table, FlexTable}}
     labelmaxwidth = maxwidths[end]
 
     rows_t = rows(t)
@@ -227,7 +227,7 @@ end
 
 #' @description
 #'
-#' When rendering an Table to a REPL window in chunks, each of
+#' When rendering a Table to a REPL window in chunks, each of
 #' which will fit within the width of the REPL window, this function will
 #' return the indices of the columns that should be included in each chunk.
 #'
@@ -240,7 +240,7 @@ end
 #'
 #' @param maxwidths::Vector{Int} The maximum width needed to render each
 #'        column of an Table.
-#' @param splitchunks::Bool Should the output be split into chunks at all or
+#' @param splittable::Bool Should the output be split into chunks at all or
 #'        should only one chunk be constructed for the entire
 #'        Table?
 #' @param availablewidth::Int The available width in the REPL.
@@ -253,11 +253,11 @@ end
 #' maxwidths = getmaxwidths(t, 1:1, 3:3, "Row")
 #' chunkbounds = getchunkbounds(maxwidths, true)
 function getchunkbounds(maxwidths::Vector{Int},
-                        splitchunks::Bool,
-                        availablewidth::Int=displaysize()[2]) # -> Vector{Int}
+                        splittable::Bool,
+                        availablewidth::Int=displaysize()[2])::Vector{Int}
     ncols = length(maxwidths) - 1
     labelmaxwidth = maxwidths[end]
-    if splitchunks
+    if splittable
         chunkbounds = [0]
         # Include 2 spaces + 2 | characters for row/col label
         totalwidth = labelmaxwidth + 4
