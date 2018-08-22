@@ -154,9 +154,10 @@ function showrowindices(io::IO,
     rows_t = rows(t)
     for r in rowindices
         # Print row ID
-        print(io, "│ ", r)
+        print(io, "│ ")
         padding = labelmaxwidth - ndigits(r)
         print(io, " " ^ padding)
+        print(io, r)
         print(io, " │ ")
 
         # Print table row
@@ -165,15 +166,19 @@ function showrowindices(io::IO,
             s = rows_t[r][c]
             str = ourstr(s)
             strlen = ourstrwidth(str)
+            padding = maxwidths[c] - strlen
             if ismissing(s)
                 printstyled(io, s, color=:light_black)
+            print(io, " " ^ padding)
             elseif s === nothing
                 strlen = 0
+            elseif s isa Number
+                print(io, " " ^ padding)
+                print(io, str)
             else
                 print(io, str)
+                print(io, " " ^ padding)
             end
-            padding = maxwidths[c] - strlen
-            print(io, " " ^ padding)
             if c == rightcol
                 if r == rowindices[end]
                     print(io, " │")  # is this right?
