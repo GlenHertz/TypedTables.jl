@@ -52,6 +52,10 @@ Convert a `FlexTable` into a `NamedTuple` of it's columns.
 # Simple column access via `table.columnname`
 @inline Base.getproperty(t::FlexTable, name::Symbol) = getproperty(columns(t), name)
 
+# Private fields are never exposed since they can conflict with column names
+Base.propertynames(t::FlexTable, private::Bool=false) = columnnames(t)
+
+
 """
     columnnames(table)
 
@@ -224,9 +228,6 @@ function Base.setindex!(t::FlexTable, t2::Union{FlexTable, Table}, inds::Union{A
     map((col, col2) -> setindex!(col, col2, inds...), columns(t), columns(t2))
     return t
 end
-
-# Private fields are never exposed since they can conflict with column names
-Base.propertynames(t::FlexTable, private::Bool=false) = columnnames(t)
 
 function Base.vcat(t::Union{FlexTable, Table}, t2::Union{FlexTable, Table})
     return FlexTable{_vcat_ndims(ndims(t), ndims(t2))}(map(vcat, columns(t), columns(t2)))

@@ -48,6 +48,10 @@ Convert a `Table` into a `NamedTuple` of it's columns.
 # Simple column access via `table.columnname`
 @inline Base.getproperty(t::Table, name::Symbol) = getproperty(columns(t), name)
 
+# Private fields are never exposed since they can conflict with column names
+Base.propertynames(t::Table, private::Bool=false) = columnnames(t)
+
+
 """
     columnnames(table)
 
@@ -225,9 +229,6 @@ function Base.setindex!(t::Table{<:NamedTuple{names}}, t2::Table{<:NamedTuple{na
     map((col, col2) -> setindex!(col, col2, inds...), columns(t), columns(t2))
     return t
 end
-
-# Private fields are never exposed since they can conflict with column names
-Base.propertynames(t::Table, private::Bool=false) = columnnames(t)
 
 function Base.vcat(t::Table{<:NamedTuple{names}}, t2::Table{<:NamedTuple{names}}) where {names}
     return Table(map(vcat, columns(t), columns(t2)))
