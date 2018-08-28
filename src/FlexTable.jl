@@ -253,4 +253,5 @@ function Base.resize!(t::FlexTable, len::Int)
     for c in columns(t)
         resize!(c, len)
     end
+    t
 end

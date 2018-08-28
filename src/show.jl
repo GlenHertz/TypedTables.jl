@@ -8,7 +8,8 @@ end
 showtable(t; kwargs...) = showtable(stdout, t; kwargs...)
 
 function showtable(io::IO, t::T;
-                   allcols::Bool=false,
+                   allcols::Bool=true,
+                   splittable::Bool=true,
                    rowlabel::Symbol=:Row,
                    compact::Bool=true,
                    displaysummary::Bool=true) where {T<:Union{Table,FlexTable}}
@@ -33,7 +34,7 @@ function showtable(io::IO, t::T;
              rowindices1,
              rowindices2,
              maxwidths,
-             !allcols,
+             splittable,
              allcols,
              rowlabel,
              displaysummary)
@@ -168,8 +169,8 @@ function showrowindices(io::IO,
             strlen = ourstrwidth(str)
             padding = maxwidths[c] - strlen
             if ismissing(s)
+                print(io, " " ^ padding)
                 printstyled(io, s, color=:light_black)
-            print(io, " " ^ padding)
             elseif s === nothing
                 strlen = 0
             elseif s isa Number
@@ -294,6 +295,7 @@ end
 ourstrwidth(x::Any) = textwidth(ourstr(x))
 
 ourshowcompact(io::IO, x::Any) = show(IOContext(io, :compact=>true), x)
+ourshowcompact(io::IO, x::Integer) = print(io, x)
 ourshowcompact(io::IO, x::AbstractString) = escape_string(io, x, "")
 ourshowcompact(io::IO, x::Symbol) = ourshowcompact(io, string(x))
 ourshowcompact(io::IO, x::Nothing) = ""

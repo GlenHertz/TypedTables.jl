@@ -43,6 +43,29 @@ Convert a `Table` into a `NamedTuple` of it's columns.
 """
 @inline columns(t::Table) = Core.getfield(t, :data)
 
+@inline function columns(t::Table, names::NTuple{N, Symbol}) where N
+	nt = NamedTuple{names}(map(name -> getproperty(t, name), names))
+end
+
+@inline function columns(t::Table, names::AbstractVector{<:Symbol})
+    columns(t, tuple(names...))
+end
+@inline function columns(t::Table, name::Symbol)
+    columns(t, tuple(name))
+end
+@inline function columns(t::Table, idxs::NTuple{N, Int}) where N
+    all_names = columnnames(t)
+    names = [all_names[idx] for idx in idxs]
+    columns(t, names)
+end
+@inline function columns(t::Table, idxs::AbstractVector{<:Int})
+    columns(t, tuple(idxs...))
+end
+@inline function columns(t::Table, idx::Int)
+    columns(t, tuple(idx))
+end
+
+
 @inline rows(t::Table) = t
 
 # Simple column access via `table.columnname`
@@ -60,11 +83,15 @@ Return a tuple of the column names of a `Table`.
 columnnames(::AbstractArray{<:NamedTuple{names}}) where {names} = names
 
 
+
+
 # Basic AbstractArray interface
 
 @inline Base.size(t::Table) = size(first(columns(t)))
 @inline Base.axes(t::Table) = axes(first(columns(t)))
 @inline Base.IndexStyle(t::Table) = IndexStyle(first(columns(t)))
+
+@inline ncolumns(t::Table) = length(columnnames(t))
 
 function Base.checkbounds(::Type{Bool}, t::Table, i...)
     # Make sure we are in bounds for *every* column. Only safe to do
@@ -246,4 +273,5 @@ function Base.resize!(t::Table, len::Int)
 	for c in columns(t)
 		resize!(c, len)
 	end
+    t
 end
