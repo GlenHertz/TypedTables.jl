@@ -45,7 +45,7 @@ Tables.schema(t::FlexTable) = _eltypes(columns(t))
 
 Convert a `FlexTable` into a `NamedTuple` of it's columns.
 """
-@inline columns(t::FlexTable) = Core.getfield(t, :data)
+@inline columns(t::FlexTable) = getfield(t, :data)
 
 @inline rows(t::FlexTable) = Table(columns(t))
 
@@ -55,6 +55,10 @@ Convert a `FlexTable` into a `NamedTuple` of it's columns.
 # Private fields are never exposed since they can conflict with column names
 Base.propertynames(t::FlexTable, private::Bool=false) = columnnames(t)
 
+function Base.setproperty!(t::FlexTable, name::Symbol, a::AbstractArray)
+    setfield!(t, :data, merge(columns(t), NamedTuple{(name,)}((a,))))
+    return t
+end
 
 """
     columnnames(table)
@@ -228,6 +232,9 @@ function Base.setindex!(t::FlexTable, t2::Union{FlexTable, Table}, inds::Union{A
     map((col, col2) -> setindex!(col, col2, inds...), columns(t), columns(t2))
     return t
 end
+
+# Private fields are never exposed since they can conflict with column names
+Base.propertynames(t::FlexTable, private::Bool=false) = columnnames(t)
 
 function Base.vcat(t::Union{FlexTable, Table}, t2::Union{FlexTable, Table})
     return FlexTable{_vcat_ndims(ndims(t), ndims(t2))}(map(vcat, columns(t), columns(t2)))
