@@ -13,6 +13,10 @@ function showtable(io::IO, t::T;
                    rowlabel::Symbol=:Row,
                    compact::Bool=true,
                    displaysummary::Bool=true) where {T<:Union{Table,FlexTable}}
+    col_lengths = [length(c) for c in columns(t)]
+    if length(col_lengths) > 0
+        @assert all(isequal(col_lengths[1]), col_lengths) "table columns must be same length"
+    end
     if compact
         io = IOContext(io, :compact=>compact)
     end
