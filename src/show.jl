@@ -12,6 +12,7 @@ function showtable(io::IO, t::T;
                    splittable::Bool=true,
                    rowlabel::Symbol=:Row,
                    compact::Bool=true,
+                   allrows::Bool=false,
                    displaysummary::Bool=true) where {T<:Union{Table,FlexTable}}
     col_lengths = [length(c) for c in columns(t)]
     if length(col_lengths) > 0
@@ -22,7 +23,7 @@ function showtable(io::IO, t::T;
     end
     nrows = size(t)[1]
     disp_rows, disp_cols = displaysize(io)
-    disp_max_rows = disp_rows - 5
+    disp_max_rows = allrows ? 10^6 : disp_rows - 5
     if nrows <= disp_max_rows
         rowindices1 = 1:nrows
         rowindices2 = 1:0
